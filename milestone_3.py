@@ -1,91 +1,116 @@
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LinearRegression
-from sklearn.feature_extraction.text import TfidfVectorizer, ENGLISH_STOP_WORDS
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
 
 # Ustawienie stylu wykresów
 sns.set_theme(style="whitegrid")
 
 # ==========================================
-# 1. ŁADOWANIE DANYCH
+# KROK 1: ŁADOWANIE DANYCH
 # ==========================================
 print("Ładowanie zbalansowanych danych...")
+if not os.path.exists("zbalansowane_gotowe_do_treningu.parquet"):
+    print("BŁĄD: Nie znaleziono pliku 'zbalansowane_gotowe_do_treningu.parquet'!")
+    print("Uruchom najpierw Milestone 2, aby przygotować dane.")
+    exit()
+
 df = pd.read_parquet("zbalansowane_gotowe_do_treningu.parquet")
 
 # ==========================================
-# 2. ZAMIANA TEKSTU NA LICZBY (Wersja ulepszona)
+# KROK 2: PODZIAŁ NA ZBIÓR TRENINGOWY I TESTOWY
 # ==========================================
-print("Zamieniam słowa na macierz matematyczną (uwzględniam pary słów i przeczenia)...")
-
-# Wyciągamy domyślną listę angielskich śmieciowych słów...
-lista_stop_words = set(ENGLISH_STOP_WORDS)
-# ...i WYRZUCAMY z niej słowa, które zmieniają sens na negatywny!
-# Dzięki temu model ich nie usunie z recenzji.
-wazne_przeczenia = {"no", "not", "nor", "none", "nothing", "without", "doesn", "isn", "wasn", "couldn", "wouldn"}
-bezpieczne_stop_words = list(lista_stop_words - wazne_przeczenia)
-
-# ngram_range=(1, 3) oznacza, że bierzemy pojedyncze słowa, pary (bigramy) i trójki (trigramy)
-# max_features podnosimy lekko do 3000, bo doszło nam sporo nowych kombinacji słów
-vectorizer = TfidfVectorizer(
-    max_features=3000, 
-    stop_words=bezpieczne_stop_words, 
-    ngram_range=(1, 3) 
-)
-
-X = vectorizer.fit_transform(df['full_review'])
+print("Dzielenie danych na zbiór do nauki (80%) i do testów (20%)...")
+X = df['full_review']
 y = df['rating']
 
-# ==========================================
-# 3. SZUKANIE KORELACJI (Regresja Liniowa)
-# ==========================================
-print("Trenuję prosty model liniowy do znalezienia korelacji...")
-model = LinearRegression()
-model.fit(X, y)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # ==========================================
-# 4. ANALIZA WYNIKÓW
+# KROK 3: WEKTORYZACJA (Zamiana słów na liczby)
 # ==========================================
-# Pobieramy listę 2000 słów i wagę (korelację), jaką model przypisał każdemu z nich
-slowa = vectorizer.get_feature_names_out()
-wagi = model.coef_
+print("Budowanie słownika i zamiana tekstu na liczby (TF-IDF)...")
+vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
 
-# Tworzymy wygodną tabelę
-df_korelacja = pd.DataFrame({
-    'slowo': slowa, 
-    'wplyw_na_ocene': wagi
-})
-
-# Wyciągamy 15 słów, które najbardziej podbijają ocenę (w stronę 5 gwiazdek)
-top_pozytywne = df_korelacja.sort_values(by='wplyw_na_ocene', ascending=False).head(15)
-
-# Wyciągamy 15 słów, które najbardziej zaniżają ocenę (w stronę 1 gwiazdki)
-top_negatywne = df_korelacja.sort_values(by='wplyw_na_ocene', ascending=True).head(15)
-
-print("\n--- TOP 5 SŁÓW POZYTYWNYCH ---")
-print(top_pozytywne.head())
-
-print("\n--- TOP 5 SŁÓW NEGATYWNYCH ---")
-print(top_negatywne.head())
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
 
 # ==========================================
-# 5. RYSOWANIE WYKRESÓW
+# KROK 4: BUDOWA I TRENING MODELU
 # ==========================================
-print("\nRysowanie wykresów...")
-fig, axes = plt.subplots(1, 2, figsize=(16, 8))
+print("Trenowanie modelu (Regresja Logistyczna)...")
+model = LogisticRegression(max_iter=1000, random_state=42)
+model.fit(X_train_vec, y_train)
 
-# Wykres pozytywnych
-sns.barplot(data=top_pozytywne, x='wplyw_na_ocene', y='slowo', ax=axes[0], palette='Greens_r')
-axes[0].set_title("Słowa podnoszące ocenę (Korelacja pozytywna)", fontsize=14)
-axes[0].set_xlabel("Waga (Siła wpływu)")
-axes[0].set_ylabel("Słowo")
+# ==========================================
+# KROK 5: EWALUACJA (Egzamin modelu)
+# ==========================================
+y_pred = model.predict(X_test_vec)
+skutecznosc = accuracy_score(y_test, y_pred)
+print(f"\nOGÓLNA SKUTECZNOŚĆ MODELU: {skutecznosc * 100:.2f}%")
 
-# Wykres negatywnych
-sns.barplot(data=top_negatywne, x='wplyw_na_ocene', y='slowo', ax=axes[1], palette='Reds_r')
-axes[1].set_title("Słowa obniżające ocenę (Korelacja negatywna)", fontsize=14)
-axes[1].set_xlabel("Waga (Siła wpływu)")
-axes[1].set_ylabel("")
-
-plt.tight_layout()
+# ==========================================
+# KROK 6: MACIERZ POMYŁEK (Wizualizacja)
+# ==========================================
+print("\nRysowanie Macierzy Pomyłek (zamknij okno wykresu, aby przejść dalej)...")
+cm = confusion_matrix(y_test, y_pred)
+plt.figure(figsize=(8, 6))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+            xticklabels=[1, 2, 3, 4, 5], yticklabels=[1, 2, 3, 4, 5])
+plt.title("Macierz Pomyłek (Confusion Matrix)")
+plt.xlabel("Przewidywania modelu")
+plt.ylabel("Rzeczywista ocena")
 plt.show()
+
+# ==========================================
+# KROK 7: TESTY NA ŻYWO (Zdefiniowane w kodzie)
+# ==========================================
+print("\n--- TESTY NA PRZYKŁADOWYCH ZDANIACH ---")
+test_zdania = [
+    "I love this product, it works perfectly!",
+    "It's okay, but the delivery was very slow.",
+    "Completely useless. Broke after one day."
+]
+test_vec = vectorizer.transform(test_zdania)
+przewidywania = model.predict(test_vec)
+
+for zdanie, ocena in zip(test_zdania, przewidywania):
+    print(f"[{ocena} gwiazdki] -> {zdanie}")
+
+# ==========================================
+# KROK 8: TESTOWANIE NA DOWOLNYM PLIKU TEKSTOWYM
+# ==========================================
+print("\n" + "=" * 50)
+print("TESTOWANIE NA WŁASNYM PLIKU (.txt)")
+print("=" * 50)
+
+nazwa_pliku = input("Wpisz nazwę pliku .txt (np. recenzja.txt) lub naciśnij Enter, aby zakończyć: ")
+
+if nazwa_pliku:
+    if os.path.exists(nazwa_pliku):
+        try:
+            with open(nazwa_pliku, "r", encoding="utf-8") as f:
+                tekst_z_pliku = f.read()
+
+            if len(tekst_z_pliku.strip()) < 5:
+                print("Plik jest pusty lub zawiera za mało tekstu.")
+            else:
+                # Zamiana tekstu z pliku na wektor
+                wektor_pliku = vectorizer.transform([tekst_z_pliku])
+                wynik = model.predict(wektor_pliku)[0]
+
+                print(f"\n--- WYNIK ANALIZY PLIKU '{nazwa_pliku}' ---")
+                print(f"TREŚĆ (początek): {tekst_z_pliku[:150]}...")
+                print(f"PRZEWIDYWANA OCENA: {wynik} GWIAZDKI/EK")
+
+        except Exception as e:
+            print(f"Wystąpił błąd podczas odczytu pliku: {e}")
+    else:
+        print(
+            f"BŁĄD: Nie znaleziono pliku o nazwie '{nazwa_pliku}'. Upewnij się, że plik znajduje się w tym samym folderze co skrypt.")
+
+print("\n--- KONIEC PROGRAMU ---")
