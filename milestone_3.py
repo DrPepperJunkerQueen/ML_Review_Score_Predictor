@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import joblib  # <-- DODANO IMPORT
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import Ridge
@@ -42,27 +43,27 @@ X_test_vec = vectorizer.transform(X_test)
 # ==========================================
 # KROK 4: BUDOWA I TRENING MODELU
 # ==========================================
-# Używamy Ridge Regression zamiast klasyfikatora — model zwraca teraz
-# liczby zmiennoprzecinkowe z przedziału [1.0, 5.0] zamiast dyskretnych etykiet.
 print("Trenowanie modelu (Ridge Regression)...")
 model = Ridge(alpha=1.0)
 model.fit(X_train_vec, y_train)
 
 # ==========================================
+# KROK 4.5: ZAPISYWANIE MODELU I WEKTORYZATORA (DODANO)
+# ==========================================
+print("\nZapisywanie modelu i wektoryzatora do plików...")
+joblib.dump(model, "milestone3_ridge_model.joblib")
+joblib.dump(vectorizer, "milestone3_vectorizer.joblib")
+print("Zapisano pomyślnie jako 'milestone3_ridge_model.joblib' i 'milestone3_vectorizer.joblib'.\n")
+
+# ==========================================
 # KROK 5: PRZEWIDYWANIE I PRZYCINANIE DO SKALI
 # ==========================================
-# Regressor może wyjść poza zakres [1.0, 5.0] — przycinamy.
 y_pred_raw = model.predict(X_test_vec)
 y_pred = np.clip(y_pred_raw, 1.0, 5.0)
 
 # ==========================================
 # KROK 6: METRYKI SKUTECZNOŚCI
 # ==========================================
-# Skuteczność pojedynczego przewidywania:
-#   score = 1 - |przewidywanie - cel| / (5.0 - 1.0)
-# Przykład: cel = 5.0, przewidywanie = 4.0 → 1 - 1/4 = 75%
-#           cel = 5.0, przewidywanie = 1.0 → 1 - 4/4 =  0%
-#           cel = 5.0, przewidywanie = 5.0 → 1 - 0/4 = 100%
 SKALA = 5.0 - 1.0  # rozpiętość skali = 4.0
 
 bledy_bezwzgledne = np.abs(y_pred - y_test.values)
@@ -112,7 +113,7 @@ plt.tight_layout()
 plt.show()
 
 # ==========================================
-# KROK 9: TESTY NA ŻYWO (Zdefiniowane w kodzie)
+# KROK 9: TESTY NA ŻYWO
 # ==========================================
 print("\n--- TESTY NA PRZYKŁADOWYCH ZDANIACH ---")
 test_zdania = [

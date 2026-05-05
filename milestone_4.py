@@ -7,6 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import seaborn as sns
+import joblib  # <-- DODANO IMPORT
 from sklearn.model_selection import train_test_split, KFold
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import SGDRegressor, Ridge
@@ -67,10 +68,6 @@ def do_przedzialow(wartosci):
 # ══════════════════════════════════════════════════════════════
 
 def trenuj_sgd(X_tr, y_tr, n_epok=100, alpha=0.0001):
-    """
-    SGDRegressor = stochastyczny Ridge. Każda epoka = 1 krok postępu.
-    Wynik jest identyczny z Ridge przy odpowiednim alpha.
-    """
     model = SGDRegressor(
         loss='squared_error', penalty='l2', alpha=alpha,
         max_iter=1, warm_start=True, random_state=42, tol=None
@@ -83,10 +80,14 @@ def trenuj_sgd(X_tr, y_tr, n_epok=100, alpha=0.0001):
     nowa_linia()
     return model
 
+# KLASA WYCIĄGNIĘTA DO ZASIĘGU GLOBALNEGO (ABY DZIAŁAŁ ZAPIS)
+class RFWrapper:
+    def __init__(self, drzewa): 
+        self.drzewa = drzewa
+    def predict(self, X):
+        return np.mean([d.predict(X) for d in self.drzewa], axis=0)
+
 def trenuj_rf(X_tr, y_tr, n_drzew=100):
-    """
-    RandomForest budowany drzewo po drzewie — każde drzewo = 1 krok.
-    """
     drzewa = []
     t = time.time()
     for i in range(1, n_drzew + 1):
@@ -95,22 +96,15 @@ def trenuj_rf(X_tr, y_tr, n_drzew=100):
             max_features='sqrt',
             random_state=i
         )
-        # bootstrap sample
         idx = np.random.default_rng(i).integers(0, X_tr.shape[0], X_tr.shape[0])
         drzewo.fit(X_tr[idx], y_tr.iloc[idx] if hasattr(y_tr, 'iloc') else y_tr[idx])
         drzewa.append(drzewo)
         pasek_postepu(i, n_drzew, f"RandomForest  drzewo {i:>{len(str(n_drzew))}}/{n_drzew}", t)
     nowa_linia()
 
-    class RFWrapper:
-        def __init__(self, drzewa): self.drzewa = drzewa
-        def predict(self, X):
-            return np.mean([d.predict(X) for d in self.drzewa], axis=0)
-
     return RFWrapper(drzewa)
 
 def trenuj_svr(X_tr, y_tr, C=1.0):
-    """SVR nie ma iteracji — kręcimy spinnerem w osobnym wątku."""
     stop = threading.Event()
     t    = time.time()
     w    = threading.Thread(target=spinner_svr, args=(t, stop), daemon=True)
@@ -197,6 +191,13 @@ print(f"  Wynik: Accuracy={acc_rf*100:.2f}%  MAE={mae_rf:.4f}  (łącznie {time.
 df_por = pd.DataFrame(wyniki_porownania).sort_values('Proximity Accuracy', ascending=False)
 print("\n--- TABELA PORÓWNAWCZA ---")
 print(df_por.to_string(index=False))
+
+# ZAPIS TRZECH MODELI BAZOWYCH (DODANO)
+print("\n--- ZAPIS 3 PORÓWNYWANYCH MODELI ---")
+joblib.dump(m_sgd, "model_1_sgd.joblib")
+joblib.dump(m_svr, "model_2_svr.joblib")
+joblib.dump(m_rf, "model_3_rf.joblib")
+print("Zapisano pomyślnie: model_1_sgd.joblib, model_2_svr.joblib, model_3_rf.joblib")
 
 fig, axes = plt.subplots(1, 2, figsize=(13, 5))
 fig.suptitle("Porównanie modeli", fontsize=15, fontweight='bold')
@@ -316,6 +317,11 @@ print(f"\n  Finalny model:         {najlepszy_nazwa} [{najlepszy_param}]")
 print(f"  Proximity Accuracy:    {acc_final*100:.2f}%")
 print(f"  MAE:                   {mae_final:.4f} gwiazdki")
 print(f"  RMSE:                  {rmse_final:.4f} gwiazdki")
+
+# ZAPIS FINALNEGO MODELU (DODANO)
+print(f"\n--- ZAPIS FINALNEGO MODELU ({najlepszy_nazwa}) ---")
+joblib.dump(finalny_model, "finalny_model_po_tuningu.joblib")
+print("Zapisano pomyślnie: finalny_model_po_tuningu.joblib")
 
 # ══════════════════════════════════════════════════════════════
 # KROK 6: HEATMAPA PRZEDZIAŁÓW
