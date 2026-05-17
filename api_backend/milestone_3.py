@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import joblib  # <-- DODANO IMPORT
+import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import Ridge
@@ -27,33 +27,52 @@ df = pd.read_parquet("zbalansowane_gotowe_do_treningu.parquet")
 # ==========================================
 print("Dzielenie danych na zbiór do nauki (80%) i do testów (20%)...")
 X = df['full_review']
-y = df['rating'].astype(float)  # Oceny jako liczby zmiennoprzecinkowe
+y = df['rating'].astype(float)
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
 # ==========================================
-# KROK 3: WEKTORYZACJA (Zamiana słów na liczby)
+# LOGIKA WCZYTYWANIA / NADPISYWANIA
 # ==========================================
-print("Budowanie słownika i zamiana tekstu na liczby (TF-IDF)...")
-vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
+model_path = "milestone3_ridge_model.joblib"
+vec_path = "milestone3_vectorizer.joblib"
 
-X_train_vec = vectorizer.fit_transform(X_train)
-X_test_vec = vectorizer.transform(X_test)
+istnieja_jakies_pliki = os.path.exists(model_path) or os.path.exists(vec_path)
+wymus_nadpisanie = False
+
+if istnieja_jakies_pliki:
+    odp = input(f"\nZnaleziono zapisane pliki na dysku.\nCzy chcesz NADPISAĆ WSZYSTKO i trenować od nowa? (t/N - domyślnie 'N', wygeneruje tylko braki): ").strip().lower()
+    if odp == 't':
+        wymus_nadpisanie = True
+
+# ==========================================
+# KROK 3: WEKTORYZACJA
+# ==========================================
+if wymus_nadpisanie or not os.path.exists(vec_path):
+    print("\nBudowanie słownika i zamiana tekstu na liczby (TF-IDF)...")
+    vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
+    X_train_vec = vectorizer.fit_transform(X_train)
+    X_test_vec = vectorizer.transform(X_test)
+    joblib.dump(vectorizer, vec_path)
+    print("Zapisano wektoryzator.")
+else:
+    print("\nWczytywanie wektoryzatora z dysku...")
+    vectorizer = joblib.load(vec_path)
+    X_train_vec = vectorizer.transform(X_train)
+    X_test_vec = vectorizer.transform(X_test)
 
 # ==========================================
 # KROK 4: BUDOWA I TRENING MODELU
 # ==========================================
-print("Trenowanie modelu (Ridge Regression)...")
-model = Ridge(alpha=1.0)
-model.fit(X_train_vec, y_train)
-
-# ==========================================
-# KROK 4.5: ZAPISYWANIE MODELU I WEKTORYZATORA (DODANO)
-# ==========================================
-print("\nZapisywanie modelu i wektoryzatora do plików...")
-joblib.dump(model, "milestone3_ridge_model.joblib")
-joblib.dump(vectorizer, "milestone3_vectorizer.joblib")
-print("Zapisano pomyślnie jako 'milestone3_ridge_model.joblib' i 'milestone3_vectorizer.joblib'.\n")
+if wymus_nadpisanie or not os.path.exists(model_path):
+    print("Trenowanie modelu (Ridge Regression)...")
+    model = Ridge(alpha=1.0)
+    model.fit(X_train_vec, y_train)
+    joblib.dump(model, model_path)
+    print("Zapisano model na dysku.")
+else:
+    print("Wczytywanie wytrenowanego modelu z dysku...")
+    model = joblib.load(model_path)
 
 # ==========================================
 # KROK 5: PRZEWIDYWANIE I PRZYCINANIE DO SKALI
@@ -74,10 +93,10 @@ mae = bledy_bezwzgledne.mean()
 rmse = np.sqrt(((y_pred - y_test.values) ** 2).mean())
 
 print(f"\n--- WYNIKI MODELU ---")
-print(f"Ogólna skuteczność (proximity accuracy): {ogolna_skutecznosc * 100:.2f}%")
+print(f"Ogólna skuteczność (Proximity Accuracy): {ogolna_skutecznosc * 100:.2f}%")
 print(f"  (100% = idealne trafienie, 0% = maksymalny możliwy błąd = 4 gwiazdki)")
-print(f"Średni błąd bezwzględny (MAE):            {mae:.4f} gwiazdki")
-print(f"Pierwiastek błędu kwadratowego (RMSE):    {rmse:.4f} gwiazdki")
+print(f"Średni błąd bezwzględny (MAE):           {mae:.4f} gwiazdki")
+print(f"Pierwiastek błędu kwadratowego (RMSE):   {rmse:.4f} gwiazdki")
 
 # ==========================================
 # KROK 7: WYKRES — RZECZYWISTE vs PRZEWIDYWANE
