@@ -98,7 +98,7 @@ def trenuj_svr(X_tr, y_tr, C=1.0):
     return model
 
 # ══════════════════════════════════════════════════════════════
-# KROK 1: ŁADOWANIE DANYCH
+# KROK 1: ŁADOWANIE DANYCH I PODZIAŁ NA 3 ZBIORY
 # ══════════════════════════════════════════════════════════════
 print("Ładowanie danych...")
 if not os.path.exists("zbalansowane_gotowe_do_treningu.parquet"):
@@ -108,17 +108,31 @@ if not os.path.exists("zbalansowane_gotowe_do_treningu.parquet"):
 df = pd.read_parquet("zbalansowane_gotowe_do_treningu.parquet")
 X = df['full_review']
 y = df['rating'].astype(float)
-X_train_raw, X_test_raw, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Pierwsze cięcie: Odrywamy 20% na ostateczny test (Matura)
+X_temp, X_test_raw, y_temp, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Drugie cięcie: Z pozostałych 80% odrywamy 25% na walidację (co daje 20% całości danych)
+X_train_raw, X_val_raw, y_train, y_val = train_test_split(X_temp, y_temp, test_size=0.25, random_state=42)
 
 # ══════════════════════════════════════════════════════════════
-# KROK 2: WEKTORYZACJA
+# KROK 2: WEKTORYZACJA 3 ZBIORÓW
 # ══════════════════════════════════════════════════════════════
 print("Wektoryzacja TF-IDF (5000 cech)...")
 t0 = time.time()
 vectorizer = TfidfVectorizer(max_features=5000, stop_words='english')
+
+# Uczymy słownik TYLKO na danych treningowych
 X_train = vectorizer.fit_transform(X_train_raw)
+
+# Zamieniamy na liczby dane walidacyjne i testowe
+X_val   = vectorizer.transform(X_val_raw)
 X_test  = vectorizer.transform(X_test_raw)
-print(f"  Gotowe ({time.time()-t0:.1f}s) | {X_train.shape[0]:,} wierszy")
+
+# Zapisujemy wektoryzator do pliku na potrzeby API
+joblib.dump(vectorizer, "milestone3_vectorizer.joblib")
+
+print(f"  Gotowe ({time.time()-t0:.1f}s) | Trening: {X_train.shape[0]:,} wierszy")
 
 # ══════════════════════════════════════════════════════════════
 # LOGIKA ODPALANIA
@@ -226,7 +240,7 @@ if trenuj_final_flag:
         param_label = "alpha L2"
         czy_int = False
     elif najlepszy_nazwa.startswith("SVR"):
-        wartosci = [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+        wartosci = [0.1, 0.5, 1.0, 1.5, 2.0, 3.5]
         param_label = "C"
         czy_int = False
     else:
