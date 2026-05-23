@@ -2,7 +2,7 @@
 
 Welcome to the **ML Review Score Predictor**! This repository hosts a Chrome extension and a local Python-based API designed to predict star ratings from any selected text using a custom Machine Learning model.
 
-As shown in the project structure within `image_ca904d.png`, the repository is cleanly divided into a web extension and a local backend processing server.
+The repository is cleanly divided into a web extension and a local backend processing server.
 
 ---
 
@@ -25,7 +25,7 @@ As shown in the project structure within `image_ca904d.png`, the repository is c
 
 ## 📁 Repository Structure
 
-The project is organized into two primary directories as seen in `image_ca904d.png`:
+The project is organized into two primary directories:
 
 ### 1. `api_backend/`
 
@@ -124,3 +124,10 @@ python api_serwer.py
 
 
 3. Make sure the Python server is running, and enjoy your AI-generated rating! 🎯
+
+---
+
+## 👥 Authors
+
+* **DrPepperJunkerQueen** - [@DrPepperJunkerQueen](https://www.google.com/search?q=https://github.com/DrPepperJunkerQueen)
+* **Kaemiks** - [@kaemiks]()
