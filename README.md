@@ -129,5 +129,5 @@ python api_serwer.py
 
 ## 👥 Authors
 
-* **DrPepperJunkerQueen** - [@DrPepperJunkerQueen](https://www.google.com/search?q=https://github.com/DrPepperJunkerQueen)
-* **Kaemiks** - [@kaemiks]()
+* **DrPepperJunkerQueen** - [@DrPepperJunkerQueen](https://github.com/DrPepperJunkerQueen)
+* **Kaemiks** - [@kaemiks](https://github.com/kaemiks)
