@@ -103,15 +103,15 @@ python api_serwer.py
 ```
 
 
-4. You should see a message confirming that the server is listening on port 5000[cite: 4].
+4. You should see a message confirming that the server is listening on port 5000.
 
 ### Step 2: Install the Chrome Extension
 1. Open Google Chrome and navigate to `chrome://extensions/`.
 2. Toggle **Developer mode** on in the top right corner.
 3. Click **Load unpacked** and select the `chrome_extension/` folder from this repository.
-4. The extension (listed under its original manifest name "ML Review Predictor v1.1") should now be active[cite: 2].
+4. The extension (listed under its original manifest name "ML Review Predictor v1.1") should now be active.
 
 ### Step 3: Test it out!
 1. Highlight any text on a webpage.
-2. Right-click and choose **Wylicz ocenę dla tego tekstu**[cite: 1].
+2. Right-click and choose **Wylicz ocenę dla tego tekstu**.
 3. Make sure the Python server is running, and enjoy your AI-generated rating! 🎯
