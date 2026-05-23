@@ -64,7 +64,7 @@ This folder houses the frontend user interface.
 * **`background.js`**: The service worker that manages the context menu clicks, user settings retrieval, and API `fetch` requests.
 
 
-* **`options.html`** & **`options.js**`**: The interface where you can toggle your preferred rating scale (points vs. stars).
+* **`options.html`** & **`options.js`**: The interface where you can toggle your preferred rating scale (points vs. stars).
 
 
 
@@ -83,7 +83,7 @@ The AI behind this extension was built in four distinct phases:
 3. **Baseline Training**: A baseline Ridge Regression model was trained and evaluated for Mean Absolute Error (MAE) and Proximity Accuracy.
 
 
-4. **Model Optimization**: Multiple architectures (SGD/Ridge, SVR, Random Forest) battled it out. The script dynamically tuned hyperparameters and saved the top performer as `finalny_model_po_tuningu.joblib`.
+4. **Model Optimization**: Multiple architectures (SGD/Ridge, SVR, Random Forest) battled it out. The script dynamically tuned hyperparameters and saved the top performer as `finalny_model_po_tuningu.joblib`. For example, we managed to create a model with a proximity accuracy of 81.75% by training it as an SVR with the parameter C=1.75.
 
 
 
@@ -98,20 +98,29 @@ The AI behind this extension was built in four distinct phases:
 3. Once `milestone3_vectorizer.joblib` and `finalny_model_po_tuningu.joblib` are successfully generated in the folder, run the Flask server:
 
 
+
 ```bash
 python api_serwer.py
-```
 
+```
 
 4. You should see a message confirming that the server is listening on port 5000.
 
+
+
 ### Step 2: Install the Chrome Extension
+
 1. Open Google Chrome and navigate to `chrome://extensions/`.
 2. Toggle **Developer mode** on in the top right corner.
 3. Click **Load unpacked** and select the `chrome_extension/` folder from this repository.
 4. The extension (listed under its original manifest name "ML Review Predictor v1.1") should now be active.
 
+
+
 ### Step 3: Test it out!
+
 1. Highlight any text on a webpage.
 2. Right-click and choose **Wylicz ocenę dla tego tekstu**.
+
+
 3. Make sure the Python server is running, and enjoy your AI-generated rating! 🎯
