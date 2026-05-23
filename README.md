@@ -64,7 +64,7 @@ This folder houses the frontend user interface.
 * **`background.js`**: The service worker that manages the context menu clicks, user settings retrieval, and API `fetch` requests.
 
 
-* **`options.html` & `options.js**`: The interface where you can toggle your preferred rating scale (points vs. stars).
+* **`options.html`** & **`options.js**`**: The interface where you can toggle your preferred rating scale (points vs. stars).
 
 
 
